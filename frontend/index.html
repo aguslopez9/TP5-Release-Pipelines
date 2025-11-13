@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do Básica</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>To-Do</h1>
+      <form id="todo-form" class="todo-form">
+        <label class="sr-only" for="todo-input">Nueva tarea</label>
+        <input
+          id="todo-input"
+          type="text"
+          name="todo"
+          placeholder="Escribe una tarea..."
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Agregar</button>
+      </form>
+      <ul id="todo-list" class="todo-list"></ul>
+      <p id="empty-state" class="empty-state">No hay tareas todavía.</p>
+    </main>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
+

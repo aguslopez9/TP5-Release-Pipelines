@@ -1,0 +1,14 @@
+{
+  "todos": [
+    {
+      "id": 2,
+      "text": "comprar pan",
+      "completed": false
+    },
+    {
+      "id": 3,
+      "text": "comprar leche",
+      "completed": false
+    }
+  ]
+}

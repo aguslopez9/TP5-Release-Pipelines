@@ -1,0 +1,130 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+env:
+  FRONTEND_ARTIFACT: frontend-dist
+  BACKEND_ARTIFACT: backend-dist
+
+jobs:
+  deploy_qa:
+    name: Deploy QA
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: qa
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Limpiar código fuente local
+        run: |
+          rm -rf frontend
+          rm -rf backend
+
+      - name: Download frontend artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: CI
+          run_id: ${{ github.event.workflow_run.id }}
+          name: ${{ env.FRONTEND_ARTIFACT }}
+          path: frontend
+
+      - name: Download backend artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: CI
+          run_id: ${{ github.event.workflow_run.id }}
+          name: ${{ env.BACKEND_ARTIFACT }}
+          path: backend
+
+      - name: Inject QA config
+        run: |
+          cat <<'EOF' > frontend/config.js
+          window.__APP_CONFIG = {
+            apiBaseUrl: "${{ vars.QA_BACKEND_URL }}"
+          };
+          EOF
+
+      - name: Deploy frontend to QA
+        run: bash scripts/deploy_frontend.sh qa
+        env:
+          FRONTEND_TOKEN: ${{ secrets.QA_FRONTEND_TOKEN }}
+          FRONTEND_SITE_ID: ${{ vars.QA_FRONTEND_SITE_ID }}
+          FRONTEND_DEPLOY_ENDPOINT: ${{ vars.QA_FRONTEND_DEPLOY_ENDPOINT }}
+
+      - name: Deploy backend to QA
+        run: bash scripts/deploy_backend.sh qa
+        env:
+          BACKEND_TOKEN: ${{ secrets.QA_BACKEND_TOKEN }}
+          BACKEND_SERVICE_ID: ${{ vars.QA_BACKEND_SERVICE_ID }}
+          BACKEND_DEPLOY_ENDPOINT: ${{ vars.QA_BACKEND_DEPLOY_ENDPOINT }}
+
+      - name: QA health check
+        run: bash scripts/health_check.sh "${{ vars.QA_HEALTHCHECK_URL || format('{0}/health', vars.QA_BACKEND_URL) }}"
+
+  deploy_prod:
+    name: Deploy Prod
+    needs: deploy_qa
+    runs-on: ubuntu-latest
+    environment: prod
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Limpiar código fuente local
+        run: |
+          rm -rf frontend
+          rm -rf backend
+
+      - name: Download frontend artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: CI
+          run_id: ${{ github.event.workflow_run.id }}
+          name: ${{ env.FRONTEND_ARTIFACT }}
+          path: frontend
+
+      - name: Download backend artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: CI
+          run_id: ${{ github.event.workflow_run.id }}
+          name: ${{ env.BACKEND_ARTIFACT }}
+          path: backend
+
+      - name: Inject PROD config
+        run: |
+          cat <<'EOF' > frontend/config.js
+          window.__APP_CONFIG = {
+            apiBaseUrl: "${{ vars.PROD_BACKEND_URL }}"
+          };
+          EOF
+
+      - name: Deploy frontend to Prod
+        run: bash scripts/deploy_frontend.sh prod
+        env:
+          FRONTEND_TOKEN: ${{ secrets.PROD_FRONTEND_TOKEN }}
+          FRONTEND_SITE_ID: ${{ vars.PROD_FRONTEND_SITE_ID }}
+          FRONTEND_DEPLOY_ENDPOINT: ${{ vars.PROD_FRONTEND_DEPLOY_ENDPOINT }}
+
+      - name: Deploy backend to Prod
+        run: bash scripts/deploy_backend.sh prod
+        env:
+          BACKEND_TOKEN: ${{ secrets.PROD_BACKEND_TOKEN }}
+          BACKEND_SERVICE_ID: ${{ vars.PROD_BACKEND_SERVICE_ID }}
+          BACKEND_DEPLOY_ENDPOINT: ${{ vars.PROD_BACKEND_DEPLOY_ENDPOINT }}
+
+      - name: Prod health check
+        run: bash scripts/health_check.sh "${{ vars.PROD_HEALTHCHECK_URL || format('{0}/health', vars.PROD_BACKEND_URL) }}"
+
