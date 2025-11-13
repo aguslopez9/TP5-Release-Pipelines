@@ -71,3 +71,6 @@ Actualizar `frontend/config.js` solo para testing local; en los despliegues el w
 
 ## Uso de IA
 Se utilizaron asistentes (ChatGPT/Copilot) para redactar workflows y documentación. Cada fragmento fue revisado y ejecutado localmente/mentalmente para garantizar sintaxis correcta y coherencia con los requisitos del TP5 descritos en la guía oficial ([Guía TP05](https://raw.githubusercontent.com/ingsoft3ucc/TPs_2025/main/trabajos/05-ado-release-pipelines.md)).
+
+
+...
