@@ -20,7 +20,11 @@ fi
 
 echo "Desplegando backend en ${ENVIRONMENT}"
 
-zip -rq backend.zip backend
+rm -f backend.zip
+(
+  cd backend
+  zip -rq ../backend.zip .
+)
 
 curl -sSf -X POST \
   -H "Authorization: Bearer ${BACKEND_TOKEN}" \
