@@ -99,7 +99,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,format=long
+            type=sha,format=long,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
