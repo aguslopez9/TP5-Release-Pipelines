@@ -101,6 +101,3 @@ npm start  # escucha en el puerto 3000 o el que ponga PORT
 - Si algo sale mal, podés re-ejecutar un run anterior del workflow `Deploy` o usar el historial de Netlify/Render.
 - Para la defensa hay que guardar capturas de: configuración de environments, runs exitosos, health checks y las URLs QA/Prod en funcionamiento.
 
-## Nota sobre IA
-
-Usamos asistentes (ChatGPT/Copilot) para redactar partes de los workflows y esta documentación. Todo fue revisado y probado manualmente antes de dejarlo en el repo para cumplir con la política del TP.
