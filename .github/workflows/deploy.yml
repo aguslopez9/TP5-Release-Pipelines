@@ -93,8 +93,8 @@ jobs:
       - name: Trigger container deploy in Render (QA)
         run: bash scripts/deploy_backend_container.sh
         env:
-          RENDER_API_KEY: ${{ secrets.QA_RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ vars.QA_RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.QA_BACKEND_TOKEN }}
+          RENDER_SERVICE_ID: ${{ vars.QA_BACKEND_SERVICE_ID }}
           CONTAINER_IMAGE: ${{ env.BACKEND_IMAGE_REPO }}:qa
           RENDER_REGION: ${{ vars.QA_RENDER_REGION }}
 
