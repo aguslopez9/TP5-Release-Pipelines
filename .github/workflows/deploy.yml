@@ -3,8 +3,6 @@ name: Deploy
 on:
   workflow_run:
     workflows: ["CI"]
-    branches:
-      - TP5
     types:
       - completed
 
