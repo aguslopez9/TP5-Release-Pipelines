@@ -59,6 +59,13 @@ jobs:
           FRONTEND_SITE_ID: ${{ vars.QA_FRONTEND_SITE_ID }}
           FRONTEND_DEPLOY_ENDPOINT: ${{ vars.QA_FRONTEND_DEPLOY_ENDPOINT }}
 
+      - name: Adjuntar zip del frontend QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-qa-zip
+          path: frontend.zip
+          retention-days: 1
+
       - name: Deploy backend to QA
         run: bash scripts/deploy_backend.sh qa
         env:
