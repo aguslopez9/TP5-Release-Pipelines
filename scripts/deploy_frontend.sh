@@ -34,9 +34,8 @@ rm -f frontend.zip
 
 curl -sSf -X POST \
   -H "Authorization: Bearer ${FRONTEND_TOKEN}" \
-  -F "site_id=${FRONTEND_SITE_ID}" \
-  -F "environment=${ENVIRONMENT}" \
-  -F "artifact=@frontend.zip" \
+  -H "Content-Type: application/zip" \
+  --data-binary "@frontend.zip" \
   "${FRONTEND_DEPLOY_ENDPOINT:-https://example.com/frontend/deploy}"
 
 echo "Frontend desplegado correctamente"
