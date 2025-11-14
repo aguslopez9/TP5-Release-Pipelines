@@ -80,4 +80,4 @@ Con estas evidencias en el PDF/Markdown se cubre la Sección 2 completa sin nece
 - Incorporar hosting 100 % container-based (Render Docker/Render Blueprint o Railway) para cerrar el circuito completo en QA/Prod.
 - Definir cómo versionar la imagen del frontend (¿nginx + env injection o servercito Node?).
 - Documentar costos/limitaciones de cada proveedor alternativo.
-- Preparar demos y capturas para la defensa oral.
+- Preparar demos y capturas para la defensa oral..
