@@ -1,4 +1,4 @@
 window.__APP_CONFIG = {
-  apiBaseUrl: "http://localhost:3001",
+  apiBaseUrl: "https://tp5-backend-qa.onrender.com",
 };
 
