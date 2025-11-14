@@ -175,8 +175,8 @@ jobs:
       - name: Trigger container deploy in Render (Prod)
         run: bash scripts/deploy_backend_container.sh
         env:
-          RENDER_API_KEY: ${{ secrets.PROD_RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ vars.PROD_RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.PROD_BACKEND_TOKEN }}
+          RENDER_SERVICE_ID: ${{ vars.PROD_BACKEND_SERVICE_ID }}
           CONTAINER_IMAGE: ${{ env.BACKEND_IMAGE_REPO }}:prod
           RENDER_REGION: ${{ vars.PROD_RENDER_REGION }}
 
