@@ -6,16 +6,23 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   FRONTEND_ARTIFACT: frontend-dist
   BACKEND_ARTIFACT: backend-dist
+  BACKEND_IMAGE_REPO: ghcr.io/${{ github.repository_owner }}/tp5-release-backend
 
 jobs:
   deploy_qa:
     name: Deploy QA
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment: qa
+    env:
+      SOURCE_IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Checkout repository
@@ -66,12 +73,30 @@ jobs:
           path: frontend.zip
           retention-days: 1
 
-      - name: Deploy backend to QA
-        run: bash scripts/deploy_backend.sh qa
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote backend image to qa tag
+        run: |
+          if [ -z "$SOURCE_IMAGE_TAG" ]; then
+            echo "Missing SOURCE_IMAGE_TAG"; exit 1;
+          fi
+          IMAGE="${BACKEND_IMAGE_REPO}"
+          docker pull "${IMAGE}:${SOURCE_IMAGE_TAG}"
+          docker tag "${IMAGE}:${SOURCE_IMAGE_TAG}" "${IMAGE}:qa"
+          docker push "${IMAGE}:qa"
+
+      - name: Trigger container deploy in Render (QA)
+        run: bash scripts/deploy_backend_container.sh
         env:
-          BACKEND_TOKEN: ${{ secrets.QA_BACKEND_TOKEN }}
-          BACKEND_SERVICE_ID: ${{ vars.QA_BACKEND_SERVICE_ID }}
-          BACKEND_DEPLOY_ENDPOINT: ${{ vars.QA_BACKEND_DEPLOY_ENDPOINT }}
+          RENDER_API_KEY: ${{ secrets.QA_RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ vars.QA_RENDER_SERVICE_ID }}
+          CONTAINER_IMAGE: ${{ env.BACKEND_IMAGE_REPO }}:qa
+          RENDER_REGION: ${{ vars.QA_RENDER_REGION }}
 
       - name: QA health check
         run: bash scripts/health_check.sh "${{ vars.QA_HEALTHCHECK_URL || format('{0}/health', vars.QA_BACKEND_URL) }}"
@@ -81,7 +106,12 @@ jobs:
     needs: deploy_qa
     runs-on: ubuntu-latest
     environment: prod
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      needs.deploy_qa.result == 'success'
+    env:
+      SOURCE_IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Checkout repository
@@ -125,12 +155,30 @@ jobs:
           FRONTEND_SITE_ID: ${{ vars.PROD_FRONTEND_SITE_ID }}
           FRONTEND_DEPLOY_ENDPOINT: ${{ vars.PROD_FRONTEND_DEPLOY_ENDPOINT }}
 
-      - name: Deploy backend to Prod
-        run: bash scripts/deploy_backend.sh prod
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote backend image to prod tag
+        run: |
+          if [ -z "$SOURCE_IMAGE_TAG" ]; then
+            echo "Missing SOURCE_IMAGE_TAG"; exit 1;
+          fi
+          IMAGE="${BACKEND_IMAGE_REPO}"
+          docker pull "${IMAGE}:${SOURCE_IMAGE_TAG}"
+          docker tag "${IMAGE}:${SOURCE_IMAGE_TAG}" "${IMAGE}:prod"
+          docker push "${IMAGE}:prod"
+
+      - name: Trigger container deploy in Render (Prod)
+        run: bash scripts/deploy_backend_container.sh
         env:
-          BACKEND_TOKEN: ${{ secrets.PROD_BACKEND_TOKEN }}
-          BACKEND_SERVICE_ID: ${{ vars.PROD_BACKEND_SERVICE_ID }}
-          BACKEND_DEPLOY_ENDPOINT: ${{ vars.PROD_BACKEND_DEPLOY_ENDPOINT }}
+          RENDER_API_KEY: ${{ secrets.PROD_RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ vars.PROD_RENDER_SERVICE_ID }}
+          CONTAINER_IMAGE: ${{ env.BACKEND_IMAGE_REPO }}:prod
+          RENDER_REGION: ${{ vars.PROD_RENDER_REGION }}
 
       - name: Prod health check
         run: bash scripts/health_check.sh "${{ vars.PROD_HEALTHCHECK_URL || format('{0}/health', vars.PROD_BACKEND_URL) }}"
