@@ -20,7 +20,11 @@ fi
 
 echo "Desplegando frontend en ${ENVIRONMENT}"
 
-zip -rq frontend.zip frontend
+rm -f frontend.zip
+(
+  cd frontend
+  zip -rq ../frontend.zip .
+)
 
 curl -sSf -X POST \
   -H "Authorization: Bearer ${FRONTEND_TOKEN}" \
