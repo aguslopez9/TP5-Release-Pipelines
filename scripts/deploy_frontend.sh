@@ -20,12 +20,6 @@ fi
 
 echo "Desplegando frontend en ${ENVIRONMENT}"
 
-cat <<'EOF' > frontend/config.js
-window.__APP_CONFIG = {
-  apiBaseUrl: "https://tp5-backend-qa.onrender.com"
-};
-EOF
-
 rm -f frontend.zip
 (
   cd frontend
