@@ -1,76 +1,49 @@
-# TP5-Release-Pipelines
+# TP05 Release Pipelines
 
-Pipeline de CI/CD para el TP05 de DevOps empleando únicamente GitHub Actions más servicios cloud externos (sin Azure DevOps).
+Este repo reúne el TP05 completo: app (frontend + backend), workflows de GitHub Actions y scripts para desplegar a QA y Prod usando Render + Netlify.
 
-## Aplicación
-- `frontend/`: SPA en HTML/CSS/JS que consume la API vía `window.__APP_CONFIG.apiBaseUrl`.
-- `backend/`: API REST en Node.js nativo (`http` + persistencia en `backend/data/todos.json`) con endpoint de health check en `/health`.
-- `scripts/`: utilidades reutilizadas por los workflows para desplegar (`deploy_frontend.sh`, `deploy_backend.sh`) y validar (`health_check.sh`).
+## ¿Qué hay adentro?
+
+- `frontend/`: app To-Do en vanilla JS. Se conecta a la API leyendo `window.__APP_CONFIG.apiBaseUrl`, valor que el pipeline reemplaza según el entorno.
+- `backend/`: API Node que guarda tareas en un `todos.json`. Tiene `/todos` y un `/health` que devuelve `{ status: "ok" }`.
+- `scripts/`: utilidades bash que empacan y suben el frontend/backend, además de un health check con 5 reintentos.
 
 ## Workflows de GitHub Actions
 
-### CI (`.github/workflows/ci.yml`)
-- Se ejecuta en `push` y `pull_request` contra `main`.
-- `build_frontend`: valida sintaxis de los archivos JS y publica el contenido completo del frontend como artefacto `frontend-dist`.
-- `build_backend`: instala dependencias, ejecuta `npm test` (lint sintáctico) y publica el backend como artefacto `backend-dist`.
-- Los artefactos quedan disponibles para el workflow de despliegue.
+- **CI (`.github/workflows/ci.yml`)**  
+  Se ejecuta en cada push/PR a `main`. Valida el frontend con `node --check`, corre `npm test` en el backend y publica los artefactos `frontend-dist` y `backend-dist`.
 
-### Release (`.github/workflows/deploy.yml`)
-- Se dispara automáticamente cuando `CI` finaliza con éxito (`workflow_run`).
-- `deploy_qa` (environment `qa`):
-  - Descarga los artefactos de la última ejecución de `CI`.
-  - Inyecta la `apiBaseUrl` correspondiente a QA.
-  - Ejecuta los scripts de despliegue usando secretos/variables del environment.
-  - Corre el health check con `scripts/health_check.sh`.
-- `deploy_prod` (environment `prod`):
-  - Necesita aprobación manual configurada en `Settings → Environments → prod`.
-  - Replica los pasos de QA con variables productivas y un health check final.
-- Ambos jobs consumen endpoints HTTP genéricos, por lo que se puede usar Render, Railway, Fly.io, Vercel, Netlify, etc.
+- **Deploy (`.github/workflows/deploy.yml`)**  
+  Arranca solo si el CI fue exitoso. Tiene dos stages:
+  1. `deploy_qa`: baja los artefactos, reemplaza `frontend/config.js` con `QA_BACKEND_URL`, despliega con los scripts y pasa el `health_check.sh`.
+  2. `deploy_prod`: espera aprobación manual (environment `prod`), repite el despliegue con variables/productivas y corre otro health check.
 
-## Variables y secretos por entorno
+Cada entorno usa sus secrets (`*_TOKEN`) y vars (`*_URL`, `*_DEPLOY_ENDPOINT`, etc.) definidos en **GitHub → Settings → Environments**.
 
-Configurar en cada environment (`qa`, `prod`) los siguientes valores:
+## Runbook express
 
-| Tipo | Nombre | Descripción |
-|------|--------|-------------|
-| Secret | `QA_BACKEND_TOKEN` / `PROD_BACKEND_TOKEN` | Token para autenticar el deploy del backend. |
-| Secret | `QA_FRONTEND_TOKEN` / `PROD_FRONTEND_TOKEN` | Token para el deploy del frontend. |
-| Secret (opcional) | `QA_HEALTHCHECK_URL` / `PROD_HEALTHCHECK_URL` | URL completa del health check si difiere de `<BACKEND_URL>/health`. |
-| Variable | `QA_BACKEND_URL` / `PROD_BACKEND_URL` | URL pública de la API en cada entorno. |
-| Variable | `QA_BACKEND_SERVICE_ID` / `PROD_BACKEND_SERVICE_ID` | Identificador del servicio backend en el proveedor elegido. |
-| Variable | `QA_BACKEND_DEPLOY_ENDPOINT` / `PROD_BACKEND_DEPLOY_ENDPOINT` | Endpoint HTTP que recibe el zip del backend. |
-| Variable | `QA_FRONTEND_SITE_ID` / `PROD_FRONTEND_SITE_ID` | Id/Site name del host del frontend. |
-| Variable | `QA_FRONTEND_DEPLOY_ENDPOINT` / `PROD_FRONTEND_DEPLOY_ENDPOINT` | Endpoint HTTP para desplegar el frontend. |
+1. Hacés cambios y pusheás a `main` → se corre CI.
+2. Si CI pasa, empieza Deploy: QA se publica solo.
+3. Revisás la ejecución, aprobás el environment `prod` desde Actions.
+4. Prod se despliega y ejecuta su health check.
 
-> Los scripts aceptan estos valores como variables de entorno. Si la plataforma elegida utiliza CLI propia, se puede adaptar el script sin modificar los workflows.
+## ¿Cómo levantarlo local?
 
-## Rollback y evidencias
-- GitHub Actions conserva la historia de artefactos; es posible relanzar un despliegue seleccionando una ejecución previa.
-- Los proveedores (Render/Vercel/etc.) suelen permitir rollbacks nativos; documentar la estrategia elegida en `decisiones.md`.
-- Guardar capturas de:
-  - Configuración de environments (variables, reviewers).
-  - Ejecuciones exitosas de `CI` y `Deploy`.
-  - Resultado del health check en QA/Prod.
-  - Sitios desplegados en ambos entornos.
-
-## Desarrollo local
 ```bash
-# backend
+# Backend
 cd backend
 npm install
-npm start
+npm start  # escucha en el puerto 3000 o el que ponga PORT
 
-# frontend (sirve estático con live server o similar)
+# Frontend
+# Servilo estático (por ejemplo con Live Server). Editá frontend/config.js si querés pegarle a otro backend local.
 ```
-Actualizar `frontend/config.js` solo para testing local; en los despliegues el workflow lo reescribe según el entorno.
 
-## Scripts disponibles
-- `scripts/deploy_frontend.sh <env>`: empaqueta `frontend/` y llama al endpoint remoto con autenticación.
-- `scripts/deploy_backend.sh <env>`: idem para `backend/`.
-- `scripts/health_check.sh <url>`: reintenta hasta 5 veces con intervalos de 5s.
+## Rollbacks y evidencias
 
-## Uso de IA
-Se utilizaron asistentes (ChatGPT/Copilot) para redactar workflows y documentación. Cada fragmento fue revisado y ejecutado localmente/mentalmente para garantizar sintaxis correcta y coherencia con los requisitos del TP5 descritos en la guía oficial ([Guía TP05](https://raw.githubusercontent.com/ingsoft3ucc/TPs_2025/main/trabajos/05-ado-release-pipelines.md)).
+- Si algo sale mal, podés re-ejecutar un run anterior del workflow `Deploy` o usar el historial de Netlify/Render.
+- Para la defensa hay que guardar capturas de: configuración de environments, runs exitosos, health checks y las URLs QA/Prod en funcionamiento.
 
+## Nota sobre IA
 
-...
+Usamos asistentes (ChatGPT/Copilot) para redactar partes de los workflows y esta documentación. Todo fue revisado y probado manualmente antes de dejarlo en el repo para cumplir con la política del TP.
